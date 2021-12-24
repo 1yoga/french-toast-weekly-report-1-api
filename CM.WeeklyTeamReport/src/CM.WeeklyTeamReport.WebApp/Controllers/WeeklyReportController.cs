@@ -14,25 +14,25 @@ namespace CM.WeeklyTeamReport.WebApp.Controllers
     public class WeeklyReportController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IRepository<WeeklyReport> _repository;
+        private readonly IWeeklyReportRepository<WeeklyReport> _repository;
 
+        [ExcludeFromCodeCoverage]
         [ActivatorUtilitiesConstructor]
-        public WeeklyReportController(IRepository<WeeklyReport> repository, IConfiguration configuration)
+        public WeeklyReportController(IWeeklyReportRepository<WeeklyReport> repository, IConfiguration configuration)
         {
             _repository = repository;
             _configuration = configuration;
         }
 
-        public WeeklyReportController(IRepository<WeeklyReport> repository)
+        public WeeklyReportController(IWeeklyReportRepository<WeeklyReport> repository)
         {
             _repository = repository;
         }
 
-        public WeeklyReportController()
-        {
-        }
-
         [ExcludeFromCodeCoverage]
+        public WeeklyReportController() { }
+
+        
         [HttpGet]
         public ActionResult<List<WeeklyReport>> ReadAllByMemberId([FromRoute] string teamMemberId)
         {
@@ -40,8 +40,7 @@ namespace CM.WeeklyTeamReport.WebApp.Controllers
             {
                 return new BadRequestObjectResult("TeamMemberId should be positive integer.");
             }
-            WeeklyReportRepository weeklyReportRepository = new(_configuration);
-            var result = weeklyReportRepository.ReadAllById(Convert.ToInt32(teamMemberId));
+            var result = _repository.ReadAllById(Convert.ToInt32(teamMemberId));
             if (result.Count == 0)
             {
                 return new NoContentResult();
@@ -113,19 +112,41 @@ namespace CM.WeeklyTeamReport.WebApp.Controllers
 
         [Route("to/{dateFrom}/{dateTo}")]
         [HttpGet]
-        public ActionResult<List<object>> ReportsTo([FromRoute] string teamMemberId, [FromRoute] string dateFrom, [FromRoute] string dateTo)
+        public ActionResult<List<object>> GetWeeklyReports ([FromRoute] string companyId, 
+            [FromRoute] string teamMemberId, [FromRoute] string dateFrom, [FromRoute] string dateTo)
         {
+            if (!Regex.IsMatch(companyId, @"^\d+$"))
+            {
+                return new BadRequestObjectResult("CompanyId should be positive integer.");
+            }
             if (!Regex.IsMatch(teamMemberId, @"^\d+$"))
             {
                 return new BadRequestObjectResult("TeamMemberId should be positive integer.");
             }
-            var weeklyReport = new WeeklyReportRepository(_configuration);
-            var result = weeklyReport.ReadAllAllReportsToLeader(Convert.ToInt32(teamMemberId), dateFrom,dateTo);
+            var result = _repository.GetWeeklyReports(Convert.ToInt32(companyId),
+                Convert.ToInt32(teamMemberId), dateFrom, dateTo);
             if (result == null)
             {
                 return new NotFoundObjectResult($"Reports Not Found");
             }
             return new OkObjectResult(result);
         }
+        /*
+        [Route("/api/companies/{companyId}/team-members/reports/history")]
+        [HttpGet]
+        public ActionResult<List<object>> ReadAllReportsHistory([FromRoute] string companyId, [FromQuery] string dateFrom, [FromQuery] string dateTo)
+        {
+            if (!Regex.IsMatch(companyId, @"^\d+$"))
+            {
+                return new BadRequestObjectResult("CompanyId should be positive integer.");
+            }
+            var weeklyReport = new WeeklyReportRepository(_configuration);
+            var result = weeklyReport.ReadAllHistory(Convert.ToInt32(companyId), dateFrom, dateTo);
+            if (result == null)
+            {
+                return new NotFoundObjectResult($"Reports Not Found");
+            }
+            return new OkObjectResult(result);
+        }*/
     }
 }
